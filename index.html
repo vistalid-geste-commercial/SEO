@@ -1,0 +1,948 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, LineChart, Line } from 'recharts'; // For charts
+
+// Dynamically load scripts for PDF generation
+const loadScript = (src) => {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = src;
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+};
+
+// Comprehensive list of cities for departments 77, 89, 51, 10
+const departmentCities = {
+  "77": [
+    "Meaux", "Chelles", "Melun", "Pontault-Combault", "Savigny-le-Temple", "Champs-sur-Marne", "Torcy", "Villeparisis", "Combs-la-Ville", "Dammarie-les-Lys",
+    "Lagny-sur-Marne", "Ozoir-la-Ferrière", "Bussy-Saint-Georges", "Mitry-Mory", "Fontainebleau", "Coulommiers", "Nemours", "Provins", "Montereau-Fault-Yonne",
+    "Bray-sur-Seine", "Moret-Loing-et-Orvanne", "Lizy-sur-Ourcq", "La Ferté-sous-Jouarre", "Donnemarie-Dontilly", "Tournan-en-Brie", "Roissy-en-Brie",
+    "Brie-Comte-Robert", "Nangis", "Mormant", "Verneuil-l'Étang", "Crécy-la-Chapelle", "Dammartin-en-Goële", "Esbly", "Ferrières-en-Brie",
+    "Faremoutiers", "Jouy-sur-Morin", "La Rochette", "Le Châtelet-en-Brie", "Lumigny-Nesles-Ormeaux", "Nanteuil-lès-Meaux", "Neufmoutiers-en-Brie",
+    "Quincy-Voisins", "Saint-Soupplets", "Samois-sur-Seine", "Servon", "Thomery", "Vaires-sur-Marne", "Vaux-le-Pénil", "Vert-Saint-Denis",
+    "Villeneuve-le-Comte", "Villiers-sur-Morin", "Avon", "Cesson", "Chartrettes", "Chauconin-Neufmontiers", "Claye-Souilly", "Coupvray",
+    "Crisenoy", "Émerainville", "Férolles-Attilly", "Gretz-Armainvilliers", "Guérard", "Héricy", "La Grande-Paroisse", "Le Mée-sur-Seine",
+    "Lésigny", "Lieusaint", "Lognes", "Longperrier", "Magny-le-Hongre", "Maincy", "Maisoncelles-en-Brie", "Marchémoret", "Meilleray",
+    "Moissy-Cramayel", "Montévrain", "Nanteau-sur-Lunain", "Noisiel", "Ozouer-le-Voulgis", "Pécy", "Penchard", "Perthes", "Poligny",
+    "Rebais", "Roissy-en-France", "Rubelles", "Saint-Germain-Laval", "Saint-Mammès", "Saint-Mard", "Saint-Pierre-lès-Nemours", "Saints",
+    "Sammeron", "Serris", "Souppes-sur-Loing", "Thoury-Férottes", "Tournan-en-Brie", "Ussy-sur-Marne", "Vaires-sur-Marne", "Veneux-les-Sablons",
+    "Verneuil-l'Étang", "Villeneuve-Saint-Denis", "Villiers-sur-Morin", "Voulx", "Vulaines-sur-Seine"
+  ],
+  "89": [
+    "Auxerre", "Sens", "Joigny", "Avallon", "Migennes", "Tonnerre", "Villeneuve-sur-Yonne", "Saint-Florentin", "Paron", "Monéteau",
+    "Appoigny", "Chablis", "Pont-sur-Yonne", "Vermenton", "Toucy", "Courson-les-Carrières", "Saint-Julien-du-Sault", "Cerisiers",
+    "Villeneuve-la-Guyard", "Brienon-sur-Armançon", "Saint-Valérien", "Thorigny-sur-Oreuse", "Sergines", "Charny Orée de Puisaye",
+    "Gisy-les-Nobles", "Malay-le-Grand", "Villeneuve-l'Archevêque", "Champignelles", "Saint-Georges-sur-Baulche", "Venoy", "Auxon",
+    "Quarré-les-Tombes", "Vault-de-Lugny", "Coulanges-la-Vineuse", "Escolives-Sainte-Camille", "Irancy", "Ligny-le-Châtel", "Pontigny",
+    "Seignelay", "Vergigny", "Charbuy", "Gurgy", "Lindry", "Pourrain", "Saint-Bris-le-Vineux", "Saint-Cyr-les-Colons", "Villefargeau",
+    "Vincelles", "Ancy-le-Franc", "Arthonnay", "Asquins", "Bazarnes", "Beine", "Bellechaume", "Bléneau", "Branches", "Cézy",
+    "Champcevrais", "Champignelles", "Champs-sur-Yonne", "Chéroy", "Coutarnoux", "Cruzy-le-Châtel", "Diges", "Esnon", "Étigny",
+    "Flogny-la-Chapelle", "Fontaines", "Givry", "Grandchamp", "Gron", "Héry", "Illiers-Combray", "Joux-la-Ville", "Lainsecq", "Lalande",
+    "Leugny", "Lucy-sur-Yonne", "Mailly-le-Château", "Malicorne", "Mézilles", "Moulins-sur-Ouanne", "Noyers", "Parly", "Perreux",
+    "Perrigny", "Puisaye", "Ravières", "Saint-Martin-sur-Ocre", "Sainte-Colombe-sur-Loing", "Saints-en-Puisaye", "Saligny", "Sormery",
+    "Sougères-en-Puisaye", "Thory", "Toucy", "Vaumarcus", "Vénizy", "Villecien", "Villefranche", "Villiers-Louis", "Vincelottes", "Vitry"
+  ],
+  "51": [
+    "Reims", "Châlons-en-Champagne", "Épernay", "Vitry-le-François", "Tinqueux", "Bétheny", "Cormontreuil", "Saint-Memmie", "Fismes",
+    "Suippes", "Sézanne", "Mourmelon-le-Grand", "Ay-Champagne", "Montmirail", "Vertus", "Dormans", "Fagnières", "Magenta",
+    "Pontfaverger-Moronvilliers", "Sainte-Menehould", "Bazancourt", "Bourgogne-Fresne", "Cernay-lès-Reims", "Chigny-les-Roses", "Courcy",
+    "Damery", "Dizy", "Gueux", "Hermonville", "Jonchery-sur-Vesle", "Ludes", "Mareuil-sur-Ay", "Montagne de Reims", "Mutigny",
+    "Orbais-l'Abbaye", "Pierry", "Rilly-la-Montagne", "Sacy", "Saint-Brice-Courcelles", "Saint-Hilaire-le-Grand", "Taissy", "Thillois",
+    "Verzy", "Villers-Allerand", "Witry-lès-Reims", "Villedommange", "Sarry", "Courtisols", "Saint-Martin-sur-le-Pré", "Coolus",
+    "Compertrix", "Fère-Champenoise", "Sompuis", "Sommesous", "Ville-en-Tardenois", "Avenay-Val-d'Or", "Bisseuil", "Bouzy", "Champillon",
+    "Chouilly", "Cramant", "Cumières", "Écueil", "Grauves", "Hautvillers", "Les Riceys", "Louvois", "Mailly-Champagne", "Mancy",
+    "Mardeuil", "Mesnil-sur-Oger", "Montbré", "Oger", "Oiry", "Pierry", "Plivot", "Puisieulx", "Reuil", "Romery", "Saint-Imoges",
+    "Tours-sur-Marne", "Trépail", "Vaudemange", "Verzenay", "Vertus", "Villers-Marmery", "Voipreux", "Vrigny", "Chamery", "Chenay",
+    "Cuchery", "Jouy-lès-Reims", "Marfaux", "Méry-Prémecy", "Paradis", "Pargny-lès-Reims", "Romain", "Sacy", "Sarcy", "Serzy-et-Prin",
+    "Tramery", "Ville-en-Tardenois", "Ville-Dommange", "Vrigny"
+  ],
+  "10": [
+    "Troyes", "Romilly-sur-Seine", "La Chapelle-Saint-Luc", "Saint-André-les-Vergers", "Sainte-Savine", "Bar-sur-Aube", "Nogent-sur-Seine",
+    "Pont-Sainte-Marie", "Les Noës-près-Troyes", "Arcis-sur-Aube", "Vendeuvre-sur-Barse", "Aix-en-Othe", "Brienne-le-Château",
+    "Creney-près-Troyes", "Estissac", "Lusigny-sur-Barse", "Marigny-le-Châtel", "Mussy-sur-Seine", "Piney", "Les Riceys",
+    "Rosières-près-Troyes", "Saint-Julien-les-Villas", "Saint-Parres-aux-Tertres", "Villenauxe-la-Grande", "Chaource", "Dienville",
+    "Ervy-le-Châtel", "Fontaine-les-Grès", "Isle-Aumont", "La Rivière-de-Corps", "Mesnil-Saint-Père", "Montgueux", "Payns", "Polisy",
+    "Saint-Benoît-sur-Seine", "Saint-Germain", "Saint-Léger-près-Troyes", "Saint-Lyé", "Torvilliers", "Villechétif", "Villemereuil",
+    "Villery", "Voué", "Avirey-Lingey", "Barberey-Saint-Sulpice", "Bayel", "Bouranton", "Bréviandes", "Buchères", "Celles-sur-Ource",
+    "Chappes", "Chappes", "Charmont-sous-Barbuise", "Chauchigny", "Clérey", "Courtenot", "Dosches", "Droupt-Saint-Basle", "Échemines",
+    "Épagne", "Fontvannes", "Fouchères", "Fresnoy-le-Château", "Géraudot", "Isle-Aumont", "Jasseines", "Jully-sur-Sarce", "La Loge-aux-Chèvres",
+    "La Vendue-Mignot", "Landreville", "Lantages", "Lignières", "Longueville-sur-Aube", "Maizières-la-Grande-Paroisse", "Marolles-sous-Lignières",
+    "Mergey", "Montaulin", "Montiéramey", "Montreuil-sur-Barse", "Neuville-sur-Seine", "Onjon", "Ormes", "Pâlis", "Pargues", "Plancy-l'Abbaye",
+    "Pouan-les-Vallées", "Praslin", "Prugny", "Racines", "Ramerupt", "Rigny-le-Ferron", "Rilly-Sainte-Syre", "Saint-Étienne-sous-Barbuise",
+    "Saint-Jean-de-Bonneval", "Saint-Léger-sous-Brienne", "Saint-Nabord-sur-Aube", "Saint-Remy-sous-Barbuise", "Sainte-Maure", "Sommeval",
+    "Thieffrain", "Torvilliers", "Trannes", "Val-d'Auzon", "Vallières", "Vauchassis", "Vauchonvilliers", "Verrières", "Villacerf", "Villeloup",
+    "Villeneuve-au-Chemin", "Ville-sous-la-Ferté", "Villy-le-Bois", "Villy-le-Maréchal", "Vinets", "Vougrey", "Yèvres-le-Petit"
+  ]
+};
+
+// Helper to determine color gradient based on score (Red, Orange, Violet)
+const getScoreColorGradient = (score) => {
+  if (score < 35) {
+    // Red for negative scores
+    return `linear-gradient(to right, #EF4444, #DC2626)`; // Red-500 to Red-700
+  } else if (score < 75) {
+    // Orange for average scores
+    return `linear-gradient(to right, #F59E0B, #EA580C)`; // Orange-500 to Orange-700
+  } else {
+    // Violet for good scores
+    return `linear-gradient(to right, #A855F7, #4338CA)`; // Purple-500 to Indigo-700 (deep violet)
+  }
+};
+
+
+// Component for a styled input field
+const InputField = ({ label, type = 'text', value, onChange, placeholder }) => (
+  <div className="relative w-full">
+    <label className="block text-gray-700 text-sm font-semibold mb-2">{label}</label>
+    <input
+      type={type}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-300 ease-in-out shadow-sm text-gray-800 bg-white/80 backdrop-blur-sm"
+    />
+  </div>
+);
+
+// Component for a stylized checkbox
+const CheckboxField = ({ label, checked, onChange }) => (
+  <label className="flex items-center space-x-2 cursor-pointer">
+    <input
+      type="checkbox"
+      checked={checked}
+      onChange={onChange}
+      className="form-checkbox h-5 w-5 text-blue-600 rounded-md transition duration-150 ease-in-out focus:ring-2 focus:ring-blue-500"
+    />
+    <span className="text-gray-700 text-sm font-semibold">{label}</span>
+  </label>
+);
+
+// Component for a stylized button
+const StyledButton = ({ onClick, children, disabled = false, className = '' }) => (
+  <button
+    onClick={onClick}
+    disabled={disabled}
+    className={`
+      px-8 py-4 rounded-full font-bold text-lg transition duration-300 ease-in-out
+      ${disabled ? 'bg-gray-400 text-gray-700 cursor-not-allowed' : 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95'}
+      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75
+      ${className}
+    `}
+  >
+    {children}
+  </button>
+);
+
+// Card component with Apple-like styling
+const Card = ({ children, className = '' }) => (
+  <div className={`bg-white/70 backdrop-blur-lg rounded-3xl shadow-xl p-8 transition duration-300 ease-in-out transform hover:scale-[1.01] ${className}`}>
+    {children}
+  </div>
+);
+
+// "WOW" Widget for Overall Score with animated progress bar
+const OverallScoreWidget = ({ score }) => {
+  const strokeDashoffset = 283 - (283 * score) / 100; // Circumference of 90 radius circle is ~283
+
+  return (
+    <Card className="flex flex-col items-center justify-center p-10">
+      <h3 className="text-3xl font-extrabold text-gray-800 mb-6 text-center">Score Global SEO</h3>
+      <div className="relative w-48 h-48">
+        <svg className="w-full h-full transform -rotate-90">
+          <circle
+            className="text-gray-200"
+            strokeWidth="16"
+            stroke="currentColor"
+            fill="transparent"
+            r="80"
+            cx="96"
+            cy="96"
+          />
+          <circle
+            className="text-blue-500"
+            strokeWidth="16"
+            strokeDasharray="283"
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+            stroke="currentColor"
+            fill="transparent"
+            r="80"
+            cx="96"
+            cy="96"
+            style={{ transition: 'stroke-dashoffset 1.5s ease-out' }}
+          />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          {/* Added animate-pulse for a subtle constant animation */}
+          <span className="text-6xl font-extrabold text-gray-900 animate-pulse">{score}</span>
+          <span className="text-2xl font-bold text-gray-600">/100</span>
+        </div>
+      </div>
+      <p className="mt-6 text-xl text-gray-600 text-center">
+        Votre score global de performance en référencement.
+      </p>
+    </Card>
+  );
+};
+
+// "WOW" Widget for Key Metrics with animated progress bars
+const MetricsWidget = ({ metrics }) => (
+  <Card className="col-span-2">
+    <h3 className="text-3xl font-extrabold text-gray-800 mb-6 text-center">Détail des Performances</h3>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      {metrics.map((metric, index) => (
+        <div key={index} className="flex flex-col items-start p-6 bg-gray-50 rounded-2xl shadow-inner">
+          <h4 className="text-xl font-semibold text-gray-800 mb-3">{metric.name}</h4>
+          <p className="text-gray-600 text-sm mb-4">{metric.description}</p>
+          <div className="w-full bg-gray-200 rounded-full h-4 relative">
+            <div
+              className="h-4 rounded-full"
+              // Dynamic gradient based on score
+              style={{ background: getScoreColorGradient(metric.score), width: `${metric.score}%`, transition: 'width 1.5s ease-out' }}
+            ></div>
+            <span className="absolute right-2 top-0 text-xs font-bold text-gray-700">{metric.score}%</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  </Card>
+);
+
+// New "WOW" Widget for Doughnut Chart (Error Distribution)
+const ErrorDistributionWidget = ({ data }) => {
+  // Updated colors to Red, Orange, Yellow as requested
+  const COLORS = ['#EF4444', '#F59E0B', '#FCD34D']; // Red for critical, Orange for warnings, Yellow for minor
+
+  return (
+    <Card className="col-span-2">
+      <h3 className="text-3xl font-extrabold text-gray-800 mb-6 text-center">Répartition des Points d'Amélioration SEO</h3>
+      <ResponsiveContainer width="100%" height={300}>
+        <PieChart>
+          <Pie
+            data={data}
+            cx="50%"
+            cy="50%"
+            innerRadius={60}
+            outerRadius={90}
+            fill="#8884d8"
+            paddingAngle={5}
+            dataKey="value"
+            label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+            labelLine={false}
+          >
+            {data.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+            ))}
+          </Pie>
+          <Tooltip
+            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', backgroundColor: 'rgba(255,255,255,0.9)' }}
+            labelStyle={{ fontWeight: 'bold', color: '#333' }}
+            itemStyle={{ color: '#555' }}
+            formatter={(value, name, props) => [`${value} ${props.payload.name}`, '']}
+          />
+          <Legend layout="horizontal" align="center" verticalAlign="bottom" />
+        </PieChart>
+      </ResponsiveContainer>
+    </Card>
+  );
+};
+
+// New "WOW" Widget for Sub-Criteria Bar Chart
+const SubCriteriaChartWidget = ({ data }) => {
+  return (
+    <Card className="col-span-2">
+      <h3 className="text-3xl font-extrabold text-gray-800 mb-6 text-center">Détail des Sous-Critères SEO</h3>
+      <ResponsiveContainer width="100%" height={300}>
+        <BarChart
+          data={data}
+          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+          <XAxis dataKey="name" tickLine={false} axisLine={false} className="text-sm text-gray-600" />
+          <YAxis domain={[0, 100]} tickLine={false} axisLine={false} className="text-sm text-gray-600" />
+          <Tooltip
+            cursor={{ fill: 'rgba(0,0,0,0.05)' }}
+            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', backgroundColor: 'rgba(255,255,255,0.9)' }}
+            labelStyle={{ fontWeight: 'bold', color: '#333' }}
+            itemStyle={{ color: '#555' }}
+            formatter={(value) => [`Score: ${value}`, '']}
+          />
+          {/* Dynamic fill based on score */}
+          <Bar dataKey="score" >
+            {
+              data.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={getScoreColorGradient(entry.score).replace('linear-gradient(to right, ', '').replace(')', '').split(',')[0].trim()} />
+              ))
+            }
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </Card>
+  );
+};
+
+// New "WOW" Widget for Missing Keywords (Neutralized language)
+const MissingKeywordsWidget = ({ keywords, activity, location }) => {
+  return (
+    <Card className="col-span-2">
+      <h3 className="text-3xl font-extrabold text-gray-800 mb-6 text-center">Mots-Clés Cibles Non Couverts & Villes Voisines</h3>
+      {keywords.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-gray-700">
+          {keywords.map((keyword, index) => (
+            <div key={index} className="flex items-center bg-gray-50 p-3 rounded-xl shadow-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-500 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 102 0V6zm-1 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+              </svg>
+              <span className="font-medium">{keyword}</span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-center text-gray-600">Tous les mots-clés cibles semblent couverts.</p>
+      )}
+      <p className="mt-6 text-lg text-gray-700 text-center font-semibold">
+        L'intégration de ces mots-clés et le ciblage des villes alentour peuvent améliorer significativement votre visibilité pour l'activité de <span className="font-bold">{activity}</span> à <span className="font-bold">{location}</span> et ses environs.
+      </p>
+    </Card>
+  );
+};
+
+// "WOW" Widget for Recommendations
+const RecommendationsWidget = ({ recommendations }) => (
+  <Card className="col-span-2">
+    <h3 className="text-3xl font-extrabold text-gray-800 mb-6 text-center">Nos Recommandations Clés</h3>
+    <ul className="space-y-4 text-gray-700">
+      {recommendations.map((rec, index) => (
+        <li key={index} className="flex items-start">
+          <span className="text-blue-500 text-2xl mr-3">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </span>
+          <p className="text-lg">{rec}</p>
+        </li>
+      ))}
+    </ul>
+  </Card>
+);
+
+// NEW: Combined Traffic and Potentiel Widget (Modernized and Integrated)
+const TrafficAndPotentialWidget = ({ dailyVisits, activity, location, potentialClients }) => {
+  const averageVisitsForIndustry = 500; // Simulated average monthly visits for a local carpentry site
+  const currentMonthlyVisits = dailyVisits.reduce((sum, day) => sum + day.visits, 0);
+
+  return (
+    <Card className="col-span-2 flex flex-col items-center justify-center p-10 bg-gradient-to-br from-blue-50 to-indigo-50">
+      <h3 className="text-3xl font-extrabold text-gray-800 mb-6 text-center">Trafic Actuel & Potentiel Local</h3>
+
+      <div className="w-full mb-8 p-4 bg-white/60 rounded-2xl shadow-md"> {/* Added shadow-md */}
+        <h4 className="text-xl font-semibold text-gray-700 mb-4 text-center">Visites Quotidiennes (30 jours)</h4>
+        <ResponsiveContainer width="100%" height={200}>
+          <LineChart data={dailyVisits} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+            <XAxis dataKey="date" tickFormatter={(tick) => new Date(tick).getDate()} className="text-sm text-gray-600" />
+            <YAxis allowDecimals={false} domain={[0, Math.max(5, ...dailyVisits.map(d => d.visits))]} tickLine={false} axisLine={false} className="text-sm text-gray-600" /> {/* Dynamic Y-axis domain */}
+            <Tooltip
+              contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', backgroundColor: 'rgba(255,255,255,0.9)' }}
+              labelStyle={{ fontWeight: 'bold', color: '#333' }}
+              itemStyle={{ color: '#555' }}
+              formatter={(value) => [`Visites: ${value}`, '']}
+            />
+            <Line type="monotone" dataKey="visits" stroke="#6366F1" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} /> {/* Blue line */}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="w-full text-center mb-6 p-4 bg-white/60 rounded-2xl shadow-md"> {/* Added shadow-md */}
+        <p className="text-xl text-gray-700 mb-2">
+          Votre site enregistre environ <span className="font-bold text-red-700">{currentMonthlyVisits}</span> visites par mois.
+        </p>
+        <p className="text-lg text-gray-600">
+          Un site de <span className="font-bold">{activity}</span> bien établi à <span className="font-bold">{location}</span> peut attirer en moyenne <span className="font-bold text-purple-700">{averageVisitsForIndustry}</span> visites mensuelles.
+        </p>
+      </div>
+
+      <div className="w-full text-center p-4 bg-white/60 rounded-2xl shadow-md"> {/* Added shadow-md */}
+        <h4 className="text-xl font-semibold text-gray-700 mb-4">Potentiel de Clients Locaux (25km)</h4>
+        <p className="text-4xl font-extrabold text-purple-700 mb-2">
+          {potentialClients.toLocaleString('fr-FR')}
+        </p>
+        <p className="text-lg text-gray-600">
+          C'est le nombre estimé de clients potentiels pour votre activité de <span className="font-bold">{activity}</span> dans un rayon de 25km autour de <span className="font-bold">{location}</span>.
+        </p>
+        <p className="mt-4 text-xl font-semibold text-gray-800">
+          Votre trafic actuel représente une fraction du marché local disponible.
+        </p>
+      </div>
+    </Card>
+  );
+};
+
+
+// New: SEO Comparison Widget
+const SEOComparisonWidget = ({ yourSiteMetrics, competitorMetrics, competitorUrl }) => {
+  const data = yourSiteMetrics.map((metric, index) => ({
+    subject: metric.name,
+    'Votre Site': metric.score,
+    'Concurrent': competitorMetrics[index] ? competitorMetrics[index].score : 0,
+    fullMark: 100,
+  }));
+
+  return (
+    <Card className="col-span-2 bg-gradient-to-br from-blue-50 to-indigo-50">
+      <h3 className="text-3xl font-extrabold text-gray-800 mb-6 text-center">Comparaison SEO avec {competitorUrl ? new URL(competitorUrl).hostname : 'un Concurrent'}</h3>
+      <ResponsiveContainer width="100%" height={350}>
+        <RadarChart cx="50%" cy="50%" outerRadius="80%" data={data}>
+          <PolarGrid />
+          <PolarAngleAxis dataKey="subject" stroke="#6B7280" tick={{ fill: '#4B5563', fontSize: 14 }} />
+          <PolarRadiusAxis angle={90} domain={[0, 100]} stroke="#D1D5DB" tick={false} axisLine={false} />
+          <Radar name="Votre Site" dataKey="Votre Site" stroke="#EF4444" fill="#EF4444" fillOpacity={0.6} /> {/* Red for user's site */}
+          <Radar name="Concurrent" dataKey="Concurrent" stroke="#4338CA" fill="#4338CA" fillOpacity={0.6} /> {/* Violet for competitor's site */}
+          <Legend />
+          <Tooltip
+            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', backgroundColor: 'rgba(255,255,255,0.9)' }}
+            labelStyle={{ fontWeight: 'bold', color: '#333' }}
+            itemStyle={{ color: '#555' }}
+          />
+        </RadarChart>
+      </ResponsiveContainer>
+      <p className="mt-6 text-lg text-gray-700 text-center">
+        Analysez les forces et faiblesses de votre site par rapport à un concurrent direct.
+      </p>
+    </Card>
+  );
+};
+
+// New: Keywords Captured Widget (Neutralized language)
+const KeywordsCapturedWidget = ({ keywords, title = "Mots-Clés Captés par Google", isCompetitor = false }) => (
+  <Card className={`col-span-2 bg-gradient-to-br ${isCompetitor ? 'from-blue-50 to-indigo-50' : 'from-gray-50 to-blue-50'} border-l-4 ${isCompetitor ? 'border-blue-400' : 'border-gray-400'}`}>
+    <h3 className="text-3xl font-extrabold text-gray-800 mb-6 text-center">{title}</h3>
+    <div className={`text-7xl font-extrabold ${isCompetitor ? 'text-purple-700' : 'text-red-700'} text-center mb-4`}>
+      {keywords.length}
+    </div>
+    <p className="text-xl text-gray-700 text-center mb-4">
+      Actuellement, le site est référencé sur ces mots-clés :
+    </p>
+    {keywords.length > 0 ? (
+      <ul className="list-disc list-inside text-lg text-gray-700 text-center max-w-md mx-auto">
+        {keywords.map((keyword, index) => (
+          <li key={index} className="mb-1">{keyword}</li>
+        ))}
+      </ul>
+    ) : (
+      <p className="text-center text-gray-600 text-lg">Aucun mot-clé pertinent capté.</p>
+    )}
+    <p className="mt-6 text-2xl font-extrabold text-gray-700 text-center">
+      Ces mots-clés peuvent être affinés pour mieux cibler l'audience locale.
+    </p>
+  </Card>
+);
+
+// New: Competitor Details Widget
+const CompetitorDetailsWidget = ({ competitorUrl, siteVisits, keywordsCaptured }) => (
+  <Card className="col-span-2 bg-gradient-to-br from-blue-50 to-indigo-50">
+    <h3 className="text-3xl font-extrabold text-gray-800 mb-6 text-center">Détails du Concurrent : {new URL(competitorUrl).hostname}</h3>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="p-4 bg-white/60 rounded-2xl shadow-inner text-center">
+        <h4 className="text-xl font-semibold text-gray-700 mb-3">Visites Mensuelles Estimées</h4>
+        <p className="text-5xl font-extrabold text-purple-700">{siteVisits.toLocaleString('fr-FR')}</p>
+      </div>
+      <div className="p-4 bg-white/60 rounded-2xl shadow-inner text-center">
+        <h4 className="text-xl font-semibold text-gray-700 mb-3">Mots-Clés Captés par Google</h4>
+        <p className="text-5xl font-extrabold text-purple-700">{keywordsCaptured.length}</p>
+      </div>
+    </div>
+    {keywordsCaptured.length > 0 && (
+      <div className="mt-6 p-4 bg-white/60 rounded-2xl shadow-inner">
+        <h4 className="text-xl font-semibold text-gray-700 mb-3 text-center">Exemples de Mots-Clés Captés :</h4>
+        <ul className="list-disc list-inside text-lg text-gray-700 text-center max-w-md mx-auto">
+          {keywordsCaptured.slice(0, 5).map((keyword, index) => ( // Show top 5 for brevity
+            <li key={index} className="mb-1">{keyword}</li>
+          ))}
+        </ul>
+      </div>
+    )}
+  </Card>
+);
+
+
+// Main App component
+const App = () => {
+  const [websiteUrl, setWebsiteUrl] = useState('');
+  const [activity, setActivity] = useState('');
+  const [location, setLocation] = useState('');
+  const [competitorUrl, setCompetitorUrl] = useState('');
+  const [isGoodSeoMode, setIsGoodSeoMode] = useState(false);
+  const [auditResults, setAuditResults] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isCompetitorLoading, setIsCompetitorLoading] = useState(false); // New loading state for competitor
+  const [showModal, setShowModal] = useState(false);
+  const [modalMessage, setModalMessage] = useState('');
+
+  const auditResultsRef = useRef(null);
+
+  // Function to generate mock audit results
+  const generateMockResults = (activity, location, forCompetitor = false) => {
+    // User's site always has a "not great" score
+    const userBaseScore = 30;
+    const userScoreRange = 20; // Scores between 30-50
+
+    // Competitor's site always has a "good" score
+    const competitorBaseScore = 75;
+    const competitorScoreRange = 15; // Scores between 75-90
+
+    const baseScore = forCompetitor ? competitorBaseScore : userBaseScore;
+    const scoreRange = forCompetitor ? competitorScoreRange : userScoreRange;
+
+    // Generate daily visits for the last 30 days with fluctuations
+    const dailyVisitsData = [];
+    const minVisits = forCompetitor ? 5 : 1;
+    const maxVisits = forCompetitor ? 15 : 3;
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      // Introduce more significant fluctuations for the graph
+      let visits = Math.floor(Math.random() * (maxVisits - minVisits + 1)) + minVisits;
+      if (i % 7 === 0) { // Simulate weekly dips/spikes
+        visits = Math.max(1, visits + Math.floor(Math.random() * 3) - 1); // Small random change
+      }
+      dailyVisitsData.push({
+        date: date.toISOString().split('T')[0],
+        visits: visits
+      });
+    }
+    const totalMonthlyVisits = dailyVisitsData.reduce((sum, day) => sum + day.visits, 0);
+
+
+    // Simulate potential clients based on activity and location (simplified)
+    let potentialClients = 0;
+    if (activity.toLowerCase().includes('menuiserie')) { // Specific to menuiserie
+      potentialClients = 20000 + Math.floor(Math.random() * 5000); // Higher potential for this industry
+    } else if (activity.toLowerCase().includes('restaurant')) {
+      potentialClients = 15000 + Math.floor(Math.random() * 2000);
+    } else if (activity.toLowerCase().includes('plombier')) {
+      potentialClients = 5000 + Math.floor(Math.random() * 1000);
+    } else {
+      potentialClients = 8000 + Math.floor(Math.random() * 2000); // Default for other activities
+    }
+    const currentClients = forCompetitor ? Math.floor(potentialClients * 0.6) : Math.floor(potentialClients * 0.05); // Very low current clients for "not great" SEO (5% of potential)
+
+    const metrics = [
+      { name: 'Performance du Site', score: Math.floor(Math.random() * scoreRange) + baseScore, description: "La vitesse de chargement et l'optimisation technique de votre site." },
+      { name: 'Optimisation Locale', score: Math.floor(Math.random() * (scoreRange + (forCompetitor ? 0 : 10))) + (baseScore - (forCompetitor ? 0 : 10)), description: "Votre visibilité pour les recherches locales autour de votre zone d'activité." },
+      { name: 'Expérience Utilisateur', score: Math.floor(Math.random() * scoreRange) + baseScore, description: "La facilité d'utilisation et l'attractivité de votre site pour les visiteurs." },
+      { name: 'Qualité du Contenu', score: Math.floor(Math.random() * scoreRange) + baseScore, description: "La pertinence et l'originalité de votre contenu pour votre audience." },
+    ];
+
+    // Get all cities from the specified departments
+    const allRelevantCities = [...departmentCities["77"], ...departmentCities["89"], ...departmentCities["51"], ...departmentCities["10"]];
+    
+    // Keywords captured by Google (more coherent for user, >100 for competitor)
+    const userCapturedKeywords = [`${activity} ${location.split(',')[0].trim()}`, `entreprise ${activity} ${location.split(',')[0].trim()}`, `services ${activity} ${location.split(',')[0].trim()}`, `artisan ${activity} ${location.split(',')[0].trim()}`];
+    
+    const competitorBaseKeywords = ["menuiserie sur mesure", "ébéniste", "rénovation bois", "agencement intérieur", "cuisine bois sur mesure", "escalier bois design", "charpente bois", "terrasse bois composite", "parquet massif", "dressing sur mesure", "bibliothèque sur mesure", "meubles bois massif", "portes intérieures bois", "fenêtres bois alu", "agencement de magasins", "restauration de meubles anciens"];
+    const competitorGeneratedKeywords = new Set(); // Use a Set to avoid duplicates
+    
+    // Ensure competitor has >100 unique keywords
+    while (competitorGeneratedKeywords.size < 100 + Math.floor(Math.random() * 30)) { // 100-130 for competitor
+      const randomKeywordBase = competitorBaseKeywords[Math.floor(Math.random() * competitorBaseKeywords.length)];
+      const randomCity = allRelevantCities[Math.floor(Math.random() * allRelevantCities.length)];
+      competitorGeneratedKeywords.add(`${randomKeywordBase} ${randomCity}`);
+      if (competitorGeneratedKeywords.size < 50) { // Add some generic ones too initially
+        competitorGeneratedKeywords.add(`${randomKeywordBase} France`);
+      }
+    }
+
+    const selectedCapturedKeywords = forCompetitor
+      ? Array.from(competitorGeneratedKeywords)
+      : userCapturedKeywords.sort(() => 0.5 - Math.random()).slice(0, Math.floor(Math.random() * 2) + 2); // 2-3 for user
+
+    // Missing keywords for user: random selection from allRelevantCities
+    const missingKeywordsForUser = [];
+    if (!forCompetitor) {
+      const numMissing = 4 + Math.floor(Math.random() * 2); // 4-5 missing cities
+      const shuffledCities = allRelevantCities.sort(() => 0.5 - Math.random());
+      for (let i = 0; i < numMissing; i++) {
+        missingKeywordsForUser.push(`${activity} ${shuffledCities[i]}`);
+      }
+    }
+
+
+    return {
+      overallScore: Math.floor(Math.random() * scoreRange) + baseScore,
+      siteVisits: totalMonthlyVisits,
+      dailyVisitsData: dailyVisitsData,
+      potentialClients25km: { currentClients, potentialClients },
+      metrics: metrics,
+      errorDistribution: [
+        { name: 'Points Critiques', value: forCompetitor ? Math.floor(Math.random() * 5) + 5 : Math.floor(Math.random() * 25) + 20, color: '#EF4444' }, // Red
+        { name: 'Points d\'Attention', value: forCompetitor ? Math.floor(Math.random() * 10) + 10 : Math.floor(Math.random() * 30) + 20, color: '#F59E0B' }, // Orange
+        { name: 'Améliorations Mineures', value: forCompetitor ? Math.floor(Math.random() * 20) + 20 : Math.floor(Math.random() * 40) + 10, color: '#FCD34D' }, // Yellow
+      ],
+      subCriteria: [
+        { name: 'Structure du Site', score: Math.floor(Math.random() * scoreRange) + baseScore },
+        { name: 'Performance Technique', score: Math.floor(Math.random() * scoreRange) + baseScore },
+        { name: 'Mobile Friendly', score: Math.floor(Math.random() * scoreRange) + baseScore },
+        { name: 'Liens Entrants', score: Math.floor(Math.random() * scoreRange) + baseScore },
+        { name: 'Temps de Chargement', score: Math.floor(Math.random() * scoreRange) + baseScore },
+      ],
+      missingKeywords: missingKeywordsForUser, // Use the newly generated missing keywords
+      keywordsCaptured: selectedCapturedKeywords, // Add captured keywords
+      recommendations: forCompetitor ?
+        [
+          "Maintenez votre excellente performance et continuez à innover.",
+          "Explorez de nouveaux marchés ou services pour étendre votre portée.",
+        ] :
+        [
+          "Optimisez la vitesse de chargement de vos pages (cible < 2s).",
+          "Améliorez votre présence sur Google My Business et les annuaires locaux.",
+          "Rendez votre site entièrement convivial sur mobile (responsive design).",
+          "Créez du contenu pertinent et de qualité ciblant les mots-clés locaux.",
+          "Obtenez plus d'avis clients positifs en ligne pour renforcer votre e-réputation.",
+          "Développez une stratégie de netlinking pour améliorer votre autorité de domaine."
+        ],
+    };
+  };
+
+  // Main audit for the prospect's site
+  const runAudit = async () => {
+    if (!websiteUrl || !activity || !location) {
+      showInfoModal("Veuillez remplir tous les champs (URL, Activité, Localisation) pour lancer l'audit.");
+      return;
+    }
+
+    setIsLoading(true);
+    setAuditResults(null); // Clear previous results immediately for a fresh start
+    setCompetitorUrl(''); // Clear competitor URL on new main audit
+
+    try {
+      await new Promise(resolve => setTimeout(resolve, 2500));
+      setAuditResults(generateMockResults(activity, location, false)); // false for user's site
+    } catch (error) {
+      console.error("Erreur lors de l'audit simulé:", error);
+      setAuditResults(null);
+      showInfoModal("Une erreur est survenue lors de l'audit. Veuillez réessayer.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Secondary audit for competitor site
+  const runCompetitorAudit = async () => {
+    if (!competitorUrl) {
+      showInfoModal("Veuillez entrer l'URL du site concurrent pour lancer la comparaison.");
+      return;
+    }
+    if (!auditResults) {
+      showInfoModal("Veuillez d'abord lancer l'audit de votre site avant de comparer avec un concurrent.");
+      return;
+    }
+
+    setIsCompetitorLoading(true);
+
+    try {
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      const competitorData = generateMockResults(activity, location, true); // true for competitor's site
+      setAuditResults(prevResults => ({
+        ...prevResults,
+        competitorAuditResults: competitorData.metrics, // Store only metrics for comparison
+        competitorKeywordsCaptured: competitorData.keywordsCaptured, // Also capture competitor's keywords
+        competitorSiteVisits: competitorData.siteVisits, // Capture competitor's site visits
+      }));
+    } catch (error) {
+      console.error("Erreur lors de l'audit concurrent simulé:", error);
+      showInfoModal("Une erreur est survenue lors de l'analyse du concurrent. Veuillez réessayer.");
+    } finally {
+      setIsCompetitorLoading(false);
+    }
+  };
+
+
+  const showInfoModal = (message) => {
+    setModalMessage(message);
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setModalMessage('');
+  };
+
+  const exportPdf = async () => {
+    if (!auditResultsRef.current) {
+      showInfoModal("Impossible de trouver la section des résultats pour l'export PDF.");
+      return;
+    }
+
+    showInfoModal("Préparation du rapport PDF...");
+
+    try {
+      if (typeof window.html2canvas === 'undefined') {
+        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+      }
+      if (typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF === 'undefined') {
+        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+      }
+
+      const canvas = await window.html2canvas(auditResultsRef.current, { scale: 2, useCORS: true });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new window.jspdf.jsPDF({
+        orientation: 'portrait',
+        unit: 'px',
+        format: [canvas.width, canvas.height]
+      });
+      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+      pdf.save(`rapport-audit-seo-${activity}-${location}.pdf`);
+      showInfoModal("Rapport PDF généré avec succès !");
+    } catch (error) {
+      console.error("Erreur lors de l'export PDF:", error);
+      showInfoModal("Une erreur est survenue lors de la génération du PDF. Assurez-vous que le contenu est visible à l'écran.");
+    }
+  };
+
+
+  return (
+    <div className="min-h-screen font-inter text-gray-900 antialiased overflow-hidden relative">
+      {/* Global animated background */}
+      <style>
+        {`
+        @keyframes gradient-animation {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+
+        .animated-gradient-background {
+          background: linear-gradient(270deg, #e0f2fe, #bfdbfe, #c7d2fe, #e0f2fe); /* Light blue to light purple */
+          background-size: 400% 400%;
+          animation: gradient-animation 15s ease infinite;
+          filter: blur(50px); /* Apply blur */
+          position: fixed;
+          top: -50px; /* Extend to cover blur edges */
+          left: -50px;
+          right: -50px;
+          bottom: -50px;
+          z-index: -1; /* Send to back */
+          opacity: 0.7; /* Make it subtle */
+        }
+
+        @keyframes pulse-subtle {
+          0%, 100% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.02); opacity: 0.95; }
+        }
+
+        .animate-pulse-subtle {
+          animation: pulse-subtle 2s infinite ease-in-out;
+        }
+
+        /* Removed bounce-subtle for PotentialClients25kmWidget */
+        `}
+      </style>
+      <div className="animated-gradient-background"></div>
+
+      {/* Header */}
+      <header className="py-6 px-4 md:px-8 bg-white/80 backdrop-blur-lg shadow-md sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <h1 className="text-3xl font-extrabold text-gray-900">
+            <span className="text-blue-600">Audit</span> SEO
+          </h1>
+          <nav>
+            <ul className="flex space-x-6">
+              <li><a href="#" className="text-gray-700 hover:text-blue-600 transition duration-300 font-medium">Accueil</a></li>
+              <li><a href="#" className="text-gray-700 hover:text-blue-600 transition duration-300 font-medium">Fonctionnalités</a></li>
+              <li><a href="#" className="text-gray-700 hover:text-blue-600 transition duration-300 font-medium">Contact</a></li>
+            </ul>
+          </nav>
+        </div>
+      </header>
+
+      {/* Hero Section */}
+      <section className="relative py-20 md:py-32 text-center overflow-hidden">
+        <div className="max-w-4xl mx-auto px-4 relative z-10">
+          <h2 className="text-5xl md:text-7xl font-extrabold leading-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-700">
+            Découvrez le Vrai Potentiel de Votre Présence en Ligne.
+          </h2>
+          <p className="text-xl md:text-2xl text-gray-700 mb-10 max-w-2xl mx-auto">
+            Analysez la qualité de votre référencement local et de votre expérience utilisateur en quelques clics.
+          </p>
+          <div className="flex flex-col md:flex-row gap-6 justify-center items-center">
+            <InputField
+              key="website-url-input"
+              label="URL de votre site web"
+              placeholder="https://votresite.com"
+              value={websiteUrl}
+              onChange={(e) => setWebsiteUrl(e.target.value)}
+            />
+            <InputField
+              key="activity-input"
+              label="Votre activité (ex: Menuiserie, Restaurant)"
+              placeholder="Menuiserie"
+              value={activity}
+              onChange={(e) => setActivity(e.target.value)}
+            />
+            <InputField
+              key="location-input"
+              label="Votre localisation (ville, code postal)"
+              placeholder="Paris, 75001"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+            />
+          </div>
+          <div className="mt-8 flex justify-center">
+            <CheckboxField
+              key="seo-mode-checkbox"
+              label="Simuler un bon référencement (mode démo)"
+              checked={isGoodSeoMode}
+              onChange={(e) => setIsGoodSeoMode(e.target.checked)}
+            />
+          </div>
+          <div className="mt-10">
+            <StyledButton onClick={runAudit} disabled={isLoading}>
+              {isLoading ? (
+                <div className="flex items-center">
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Analyse en cours...
+                </div>
+              ) : (
+                "Lancer l'Audit Gratuit"
+              )}
+            </StyledButton>
+          </div>
+        </div>
+      </section>
+
+      {/* Audit Results Section - Improved Conditional Rendering */}
+      {isLoading && !auditResults && (
+        <section className="py-20 px-4 md:px-8 text-center bg-gray-50">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex flex-col items-center justify-center h-64">
+              <svg className="animate-spin h-16 w-16 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <p className="mt-4 text-xl font-semibold text-gray-700">Analyse en cours...</p>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {auditResults && (
+        <section id="audit-results-section" ref={auditResultsRef} className={`py-20 px-4 md:px-8 bg-gray-50 relative ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}>
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-20 rounded-3xl">
+              <svg className="animate-spin h-16 w-16 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            </div>
+          )}
+          <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10">
+            <OverallScoreWidget score={auditResults.overallScore} />
+            <TrafficAndPotentialWidget
+              dailyVisits={auditResults.dailyVisitsData}
+              activity={activity}
+              location={location}
+              potentialClients={auditResults.potentialClients25km.potentialClients}
+            /> {/* New Combined Widget */}
+            <MetricsWidget metrics={auditResults.metrics} />
+            <ErrorDistributionWidget data={auditResults.errorDistribution} />
+            <SubCriteriaChartWidget data={auditResults.subCriteria} />
+            <MissingKeywordsWidget keywords={auditResults.missingKeywords} activity={activity} location={location} />
+            <KeywordsCapturedWidget keywords={auditResults.keywordsCaptured} /> {/* New Widget */}
+            <RecommendationsWidget recommendations={auditResults.recommendations} />
+          </div>
+
+          {/* Competitor Comparison Section - Appears after main audit */}
+          {auditResults && (
+            <div className="max-w-7xl mx-auto mt-16 p-8 bg-white/70 backdrop-blur-lg rounded-3xl shadow-xl">
+              <h3 className="text-3xl font-extrabold text-gray-800 mb-8 text-center">Comparer avec un Concurrent</h3>
+              <div className="flex flex-col md:flex-row gap-6 justify-center items-center mb-8">
+                <InputField
+                  key="competitor-url-input-post-audit"
+                  label="URL du site concurrent"
+                  placeholder="https://site-concurrent.com"
+                  value={competitorUrl}
+                  onChange={(e) => setCompetitorUrl(e.target.value)}
+                />
+                <StyledButton onClick={runCompetitorAudit} disabled={isCompetitorLoading || !competitorUrl}>
+                  {isCompetitorLoading ? (
+                    <div className="flex items-center">
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Analyse concurrentielle...
+                    </div>
+                  ) : (
+                    "Comparer"
+                  )}
+                </StyledButton>
+              </div>
+
+              {auditResults.competitorAuditResults && (
+                <div className={`relative ${isCompetitorLoading ? 'opacity-50 pointer-events-none' : ''}`}>
+                  {isCompetitorLoading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-20 rounded-3xl">
+                      <svg className="animate-spin h-16 w-16 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    </div>
+                  )}
+                  <SEOComparisonWidget
+                    yourSiteMetrics={auditResults.metrics}
+                    competitorMetrics={auditResults.competitorAuditResults}
+                    competitorUrl={competitorUrl}
+                  />
+                  {auditResults.competitorSiteVisits !== undefined && auditResults.competitorKeywordsCaptured && (
+                    <div className="mt-8">
+                      <CompetitorDetailsWidget
+                        competitorUrl={competitorUrl}
+                        siteVisits={auditResults.competitorSiteVisits}
+                        keywordsCaptured={auditResults.competitorKeywordsCaptured}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="text-center mt-16">
+            <StyledButton onClick={exportPdf}>
+              Télécharger le Rapport PDF
+            </StyledButton>
+          </div>
+        </section>
+      )}
+
+      {/* Info Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
+            <h3 className="text-2xl font-bold text-gray-800 mb-4">Information</h3>
+            <p className="text-gray-700 mb-6">{modalMessage}</p>
+            <StyledButton onClick={closeModal}>Fermer</StyledButton>
+          </div>
+        </div>
+      )}
+
+      {/* Footer */}
+      <footer className="py-10 px-4 md:px-8 bg-gray-900 text-white text-center">
+        <div className="max-w-7xl mx-auto">
+          <p className="text-gray-400">&copy; {new Date().getFullYear()} Audit SEO. Tous droits réservés.</p>
+          <div className="flex justify-center space-x-6 mt-4">
+            <a href="#" className="text-gray-400 hover:text-blue-500 transition duration-300">Confidentialité</a>
+            <a href="#" className="text-gray-400 hover:text-blue-500 transition duration-300">Conditions d'utilisation</a>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+};
+
+export default App;
